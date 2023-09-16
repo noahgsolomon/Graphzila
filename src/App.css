@@ -1,0 +1,46 @@
+/* Use Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@font-face {
+  font-family: "Onest-Regular";
+  src: url("./assets/Onest-Regular.ttf") format("truetype");
+}
+
+@keyframes fire {
+  0% {
+    stroke: red;
+  }
+  25% {
+    stroke: orange;
+  }
+  50% {
+    stroke: yellow;
+  }
+  75% {
+    stroke: orange;
+  }
+  100% {
+    stroke: red;
+  }
+}
+
+.fire-stroke {
+  animation: fire 3s linear infinite;
+}
+
+body {
+  @apply text-lg font-medium leading-loose;
+}
+
+body.dark {
+  @apply bg-[#1a1a1a]
+  text-gray-200;
+}
+
+body.light {
+  @apply bg-gray-50
+  text-gray-800;
+}

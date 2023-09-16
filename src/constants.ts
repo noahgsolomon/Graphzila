@@ -1,0 +1,12 @@
+const LOCALSTORAGE_REMOVE_GITHUB_KEY = "removeGithub";
+const LOCALSTORAGE_THEME_KEY = "theme";
+
+const DARK_THEME_KEY = "dark";
+const LIGHT_THEME_KEY = "light";
+
+export {
+    LOCALSTORAGE_REMOVE_GITHUB_KEY,
+    LOCALSTORAGE_THEME_KEY,
+    DARK_THEME_KEY,
+    LIGHT_THEME_KEY,
+};
