@@ -1,14 +1,45 @@
-import { useState, FormEvent } from 'react';
+import {useState, FormEvent, useEffect} from 'react';
 import "./App.css";
 import cytoscape, { ElementsDefinition, Stylesheet } from 'cytoscape';
 import {DARK_THEME_KEY, LIGHT_THEME_KEY, LOCALSTORAGE_THEME_KEY} from "./constants.ts";
 import {toggleTheme} from "./toggleTheme.ts";
+import Footer from "./Footer.tsx";
+import StatusBar from "./StatusBar.tsx";
+
+
+interface Metadata {
+    createdDate: string;
+    lastUpdated: string;
+    description: string;
+}
+
+interface Node {
+    id: string;
+    label: string;
+    type: string;
+    color: string;
+    wiki: string;
+}
+
+interface Edge {
+    from: string;
+    to: string;
+    relationship: string;
+    direction: string;
+    color: string;
+}
+
+interface ResponseData {
+    metadata: Metadata;
+    nodes: Node[];
+    edges: Edge[];
+}
 
 export default function App() {
     const [hover, setHover] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [userInput, setUserInput] = useState<string>('');
-    const colors = ['#FF4500', '#8B0000', '#B22222', '#FFD700', '#FF8C00', '#2E8B57', '#6B8E23', '#483D8B', '#7FFF00', '#228B22'];
+    const [generated, setGenerated] = useState<boolean>(false);
     const [theme, setTheme] = useState<
         typeof LIGHT_THEME_KEY | typeof DARK_THEME_KEY
     >(
@@ -16,12 +47,19 @@ export default function App() {
             | typeof LIGHT_THEME_KEY
             | typeof DARK_THEME_KEY) || LIGHT_THEME_KEY
     );
-    const randomColor = () => {
-        return colors[Math.floor(Math.random() * colors.length)];
-    };
 
-    let cy: any;
-    const postData = async (url: string, data: object): Promise<any> => {
+    useEffect(() => {
+        const userTheme = window.localStorage.getItem(LOCALSTORAGE_THEME_KEY);
+        const systemTheme = window.matchMedia(
+            `(prefers-color-scheme:${DARK_THEME_KEY})`
+        ).matches
+            ? DARK_THEME_KEY
+            : LIGHT_THEME_KEY;
+        document.body.classList.add(userTheme || systemTheme);
+        localStorage.setItem(LOCALSTORAGE_THEME_KEY, userTheme || systemTheme);
+    }, []);
+
+    const postData = async (url: string, data: object): Promise<ResponseData> => {
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -37,24 +75,33 @@ export default function App() {
         return await response.json();
     };
 
+    interface ServerResponse {
+        elements: {
+            nodes: Array<{ data: { id: string; label: string, wiki: string, color: string } }>;
+            edges: Array<{ data: { source: string; target: string } }>;
+        };
+    }
+
     // Function to parse the server response to a Cytoscape-compatible object
-    const parseResponseToElements = (graphData: any) => {
+    const parseResponseToElements = (graphData: ServerResponse) => {
         const { nodes, edges } = graphData.elements;
         const elements: ElementsDefinition = { nodes: [], edges: [] };
 
-        nodes.forEach((node: any) => {
+        nodes.forEach((node) => {
             elements.nodes.push({
                 data: {
+                    icon: 'https://img.icons8.com/emoji/150/fire.png',
                     id: node.data.id,
                     label: node.data.label,
-                    gradient: randomColor()
-                },
+                    gradient: node.data.color,
+                    wiki: node.data.wiki
+                }
             });
         });
 
-        edges.forEach((edge: any) => {
+        edges.forEach((edge) => {
             elements.edges.push({
-                data: { source: edge.data.source, target: edge.data.target },
+                data: { source: edge.data.source, target: edge.data.target }
             });
         });
 
@@ -62,27 +109,30 @@ export default function App() {
     };
 
     const createGraph = (data: ElementsDefinition) => {
-        cy = cytoscape({
+        const cy = cytoscape({
             container: document.getElementById('cy') as HTMLElement,
             elements: data,
             style: [
                 {
                     selector: 'node',
                     style: {
+                        'background-image': 'data(icon)',
                         'background-color': 'data(gradient)',
                         'label': 'data(label)',
                         'font-size': '10px',
                         'font-family': 'Onest-Regular',
+                        'background-fit': 'contain',
                         'width': '30px',
                         'height': '30px',
-                        'color': theme === LIGHT_THEME_KEY ? '#2D3748' : '#F9FAFB',                        'border-width': '0.5px',
+                        'color': theme === LIGHT_THEME_KEY ? '#2D3748' : '#F9FAFB',
+                        'border-width': '0.5px',
                         'border-color': '#ccc',
                     }
                 },
                 {
                     selector: 'node.root',
                     style: {
-                        'background-color': '#f3f24e'
+                        'background-image': 'https://img.icons8.com/stickers/150/dragon.png',
                     }
                 },
                 {
@@ -97,30 +147,68 @@ export default function App() {
                 }
             ] as Stylesheet[],
             layout: {
-                name: 'cose'
+                name: 'cose',
             }
         });
 
-        // Add 'root' class to the root node
+        cy.nodes().forEach((node) => {
+            const wikiData = node.data('wiki');
+            if (wikiData !== "") {
+                node.style({
+                    'border-color': '#FFD700',
+                    'border-width': '1px'
+                });
+            }
+        });
+
+        cy.on('mouseover', 'node', function(evt){
+            const node = evt.target;
+            const wikiData = node.data('wiki');
+            if (wikiData !== "") {
+                node.animate({
+                    style: { 'border-width': '2px' },
+                }, {
+                    duration: 100
+                });
+            }
+        });
+
+        cy.on('mouseout', 'node', function(evt){
+            const node = evt.target;
+            const wikiData = node.data('wiki');
+            if (wikiData !== "") {
+                node.animate({
+                    style: { 'border-width': '1px' },
+                }, {
+                    duration: 100
+                });
+            }
+        });
+
+        cy.on('tap', 'node', function(evt){
+            const nodeData = evt.target.data();
+            if (nodeData.wiki) {
+                window.open(nodeData.wiki, '_blank');
+            }
+        });
         const rootNode = cy.nodes().eq(0);
         rootNode.addClass('root');
     };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        setGenerated(false);
         setIsLoading(true);
-        console.log("Sending user input:", userInput);
-        if (cy) {
-            cy.destroy();
-        }
 
         try {
-            const response = await postData('http://localhost:8080/get_response_data', { user_input: userInput });
-            console.log(response);
+            await postData('http://localhost:8080/get_response_data', { user_input: userInput });
             setIsLoading(false);
             const graphData = await postData('http://localhost:8080/get_graph_data', {});
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             const cytoData = parseResponseToElements(graphData);
             createGraph(cytoData);
+            setGenerated(true);
         } catch (error) {
             setIsLoading(false);
             console.error('Fetch Error:', error);
@@ -151,8 +239,8 @@ export default function App() {
                 className={`relative z-40 mx-5 mb-20 flex items-center py-5 font-bold transition-all`}
             >
             <div className="mx-auto flex w-full max-w-[50rem] flex-row flex-wrap items-center rounded-xl border-2 border-black px-4 py-3 shadow-custom transition-all dark:bg-[#1a1a1a] justify-between">
-                <div className="cursor-pointer select-none flex flex-row px-1 text-4xl text-gray-800 hover:text-red-500 dark:hover:text-red-500 transition-all hover:-translate-y-0.5 dark:text-gray-50">
-                    <img className={'w-[30px] mr-3'} src={'https://img.icons8.com/stickers/100/dragon.png'} alt={'graphzila'}/> Graphzila
+                <div className="cursor-pointer select-none flex flex-row px-1 transition-all hover:text-red-500 dark:hover:text-red-500 hover:-translate-y-0.5">
+                    <img className={'w-[50px] mr-3'} src={'https://img.icons8.com/stickers/100/dragon.png'} alt={'graphzila'}/> <div className={'flex flex-col transition-all hover:text-red-500 dark:hover:text-red-500 dark:text-gray-50 text-gray-800 '}><h1 className={'text-4xl'}>Graphzila</h1><p className={'text-sm opacity-60'}>Powered by OpenAI</p></div>
                 </div>
                 <div
                     onClick={() => {
@@ -183,6 +271,7 @@ export default function App() {
                                 d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"
                                 clipRule="evenodd"
                             />
+
                         </svg>
                     )}
                 </div>
@@ -190,50 +279,47 @@ export default function App() {
             </header>
             <div className="w-screen">
                 <div className="dark:bg-[#1a1a1a] mt-10 p-4">
-                    <form id="inputForm" className=" mb-4 text-center w-full" onSubmit={handleSubmit}>
-                        <label htmlFor="userInput" className="mb-4 block font-bold text-lg">
-                            Enter a string of text:
+                    <form id="inputForm" className="mb-4 text-center w-full" onSubmit={handleSubmit}>
+                        <label htmlFor="userInput" className="md:ml-20 md:text-left block font-bold text-lg">
+                            🐉 Summon Your Dragon Knowledge 🐉
                         </label>
+                        <p className="md:text-left mb-2 md:ml-20 opacity-80">
+                            Enter a keyword or topic to awaken your dragon's wisdom. The mystical graph will reveal interconnected knowledge and secrets.
+                        </p>
                         <div className="flex items-center md:mx-20 justify-center gap-5 md:flex">
                             <input
                                 type="text"
                                 id="userInput"
                                 placeholder="Type here..."
-                                className="flex-grow focus:border-red-500 dark:bg-[#0d0d0d] rounded-lg border-2 border-black px-5 py-2 font-bold transition-all focus:ring-0"
+                                maxLength={50}
+                                className="flex-grow focus:border-red-500 dark:bg-[#0d0d0d] rounded-lg border-2 border-black md:px-5 py-2 font-bold transition-all focus:ring-0"
                                 onChange={(e) => setUserInput(e.target.value)}
                                 value={userInput}
                                 required
                             />
                             <button
-                                disabled={isLoading}
-                                className={`border-black border-2 ${isLoading ? 'p-3' : 'p-1'} hover:border-black hover:shadow-custom hover:-translate-y-0.5 bg-red-500 hover:opacity-80 text-white rounded-lg transition-all`}
-                            >{isLoading ? (<svg
-                                className="mr-2 h-5 w-5 animate-spin"
-                                viewBox="0 0 24 24"
+                                disabled={isLoading || userInput.trim() === ''}
+                                className={`border-black border-2 p-1 hover:border-black hover:shadow-custom hover:-translate-y-0.5 bg-red-500 hover:opacity-80 text-white rounded-lg transition-all`}
                             >
-                                <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                ></circle>
-                                <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                            </svg>) : ('Submit 🔥')}</button>
+                                {isLoading ? 'Unleashing Dragon...' : 'Summon Dragon 🔥'}
+                            </button>
                         </div>
+                        <div className="md:ml-20 flex items-center">
+                            <span className="opacity-80 text-sm">{`${userInput.length}/50`}</span>
+                        </div>
+                        {generated && (
+                            <p className={'md:text-left text-center md:ml-20 text-[#FFD700]'}>
+                                nodes with gold border can be clicked to go to link
+                            </p>
+                        )}
                     </form>
                     {!isLoading ?
                         (
-                            <div id="cy" className="h-screen dark:bg-[#0d0d0d] border-2 border-black md:mx-20  rounded-md shadow-custom"></div>
+                            <div id="cy" className="h-[600px] dark:bg-[#0d0d0d] border-2 border-black md:mx-20  rounded-md shadow-custom"></div>
                         ) : (
-                            <div className={'h-screen dark:bg-[#0d0d0d] z-10 border-2 border-black md:mx-20 rounded-md shadow-custom'}>
-                                <div className="w-full h-full">
-                                    <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 transform flex-col items-center justify-center">
+                            <div className={'relative h-[600px] dark:bg-[#0d0d0d] z-10 border-2 border-black md:mx-20 rounded-md shadow-custom'}>
+                                <div className="w-full">
+                                    <div className="absolute bg-white dark:bg-[#0d0d0d] w-full rounded-md h-full left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 transform flex-col items-center justify-center">
                                         <div role="status">
                                             <svg
                                                 className="mr-2 h-10 w-10 animate-spin rounded-full border-2 border-gray-200 dark:border-gray-300"
@@ -259,6 +345,7 @@ export default function App() {
                                             </svg>
                                         </div>
                                         <span className="text-center font-bold">Loading</span>
+                                        <p>This might take 1-2 minutes...</p>
                                     </div>
                                 </div>
                             </div>
@@ -267,7 +354,15 @@ export default function App() {
                     }
                 </div>
             </div>
+            {isLoading && (
+                <StatusBar message={'🐉 Gathering knowledge scrolls...'} color={'bg-green-500'} />
+            )}
+            {generated && (
+                <StatusBar message={'👑 The dragon has summoned the knowledge! 📜'} color={'bg-[#FFD700]'} />
+            )}
+            <Footer />
         </div>
+
 
     );
 }
