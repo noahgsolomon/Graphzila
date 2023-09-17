@@ -36,10 +36,10 @@ interface ResponseData {
 }
 
 export default function App() {
-    const [hover, setHover] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [userInput, setUserInput] = useState<string>('');
     const [generated, setGenerated] = useState<boolean>(false);
+    const [error, setError] = useState<boolean>(false);
     const [theme, setTheme] = useState<
         typeof LIGHT_THEME_KEY | typeof DARK_THEME_KEY
     >(
@@ -84,6 +84,7 @@ export default function App() {
 
     // Function to parse the server response to a Cytoscape-compatible object
     const parseResponseToElements = (graphData: ServerResponse) => {
+        console.log(graphData)
         const { nodes, edges } = graphData.elements;
         const elements: ElementsDefinition = { nodes: [], edges: [] };
 
@@ -105,6 +106,8 @@ export default function App() {
             });
         });
 
+        console.log(elements)
+
         return elements;
     };
 
@@ -120,7 +123,7 @@ export default function App() {
                         'background-color': 'data(gradient)',
                         'label': 'data(label)',
                         'font-size': '10px',
-                        'font-family': 'Onest-Regular',
+                        'font-family': 'Onest-Regular, Arial, sans-serif',
                         'background-fit': 'contain',
                         'width': '30px',
                         'height': '30px',
@@ -201,16 +204,23 @@ export default function App() {
         setIsLoading(true);
 
         try {
-            await postData('http://localhost:8080/get_response_data', { user_input: userInput });
+            const graphData = await postData('hmmm', { user_input: userInput });
+            console.log(graphData)
             setIsLoading(false);
-            const graphData = await postData('http://localhost:8080/get_graph_data', {});
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             const cytoData = parseResponseToElements(graphData);
-            createGraph(cytoData);
+            setTimeout(() => {
+                createGraph(cytoData);
+            }, 100);
+            console.log('created graph')
             setGenerated(true);
         } catch (error) {
             setIsLoading(false);
+            setError(true);
+            setTimeout(() => {
+                setError(false);
+            }, 3000);
             console.error('Fetch Error:', error);
         }
     };
@@ -222,17 +232,8 @@ export default function App() {
                     className="relative mb-1 mt-1 text-base text-white transition-all hover:text-opacity-80"
                     href={`https://github.com/noahgsolomon/graphzila`}
                     target="_blank"
-                    onMouseEnter={() => setHover(true)}
-                    onMouseLeave={() => setHover(false)}
                 >
-                    ⭐ enjoying Graphzila? Leave a star{" "}
-                    <span
-                        className={`absolute -right-4 text-white transition-all ${
-                            hover ? "-right-6 text-opacity-80" : ""
-                        }`}
-                    >
-          →
-        </span>
+                    ⭐ enjoying Graphzila? Leave a star →
                 </a>
             </div>
                 <header
@@ -291,7 +292,7 @@ export default function App() {
                                 type="text"
                                 id="userInput"
                                 placeholder="Type here..."
-                                maxLength={50}
+                                maxLength={75}
                                 className="flex-grow focus:border-red-500 dark:bg-[#0d0d0d] rounded-lg border-2 border-black md:px-5 py-2 font-bold transition-all focus:ring-0"
                                 onChange={(e) => setUserInput(e.target.value)}
                                 value={userInput}
@@ -305,11 +306,11 @@ export default function App() {
                             </button>
                         </div>
                         <div className="md:ml-20 flex items-center">
-                            <span className="opacity-80 text-sm">{`${userInput.length}/50`}</span>
+                            <span className="opacity-80 text-sm">{`${userInput.length}/75`}</span>
                         </div>
                         {generated && (
                             <p className={'md:text-left text-center md:ml-20 text-[#FFD700]'}>
-                                nodes with gold border can be clicked to go to link
+                                Click on nodes with gold borders to open their associated links.
                             </p>
                         )}
                     </form>
@@ -359,6 +360,9 @@ export default function App() {
             )}
             {generated && (
                 <StatusBar message={'👑 The dragon has summoned the knowledge! 📜'} color={'bg-[#FFD700]'} />
+            )}
+            {error && (
+                <StatusBar message={'An error occurred. Refresh and try again.'} color={'bg-red-500'} />
             )}
             <Footer />
         </div>
