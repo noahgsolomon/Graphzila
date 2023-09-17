@@ -1,27 +1,51 @@
-# React + TypeScript + Vite
+<h1 align="center">
+  🐉 Knowledge Graph Generator 🐉
+</h1>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<p align="center">
+  <a href="https://graphzila.com">
+    <img src="https://github.com/noahgsolomon/Graphzila/assets/111200060/ba31b64b-ffd9-46ee-a2e4-cf66fa7d38bc" alt="graphzila-dark" width="600">
+  </a>
+</p>
 
-Currently, two official plugins are available:
+<p align="center">
+  Transform text into epic knowledge graphs with Graphzila! 📚🔮
+</p>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+<p align="center">
+  <a href="https://graphzila.com">Explore Graphzila</a> |
+  <a href="https://github.com/noahgsolomon/graphzila">Star the Repository ⭐</a>
+</p>
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## 🌟 Features
 
-- Configure the top-level `parserOptions` property like this:
+- Harness the power of OpenAI's GPT-3.5 Turbo.
+- Create detailed knowledge graphs from text descriptions.
+- Customize node and edge attributes like colors and Wikipedia links.
+- Unleash the dragon of knowledge within you! 🐉✨
 
-```js
-   parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-   },
-```
+## 🚀 How to Use
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+1. Visit [Graphzila.com](https://graphzila.com).
+2. Enter a text description related to the topic you want to explore.
+3. Witness the magic as it generates your knowledge graph!
+
+## 🐲 Support Graphzila
+
+If you find Graphzila helpful and want to support this mystical project:
+
+- 🌟 **Star the GitHub repository**: [graphzila](https://github.com/noahgsolomon/graphzila).
+- Share the tool with fellow adventurers on their quest for knowledge.
+- Provide feedback and suggestions to help us improve.
+
+Let's journey through the realms of knowledge together! 🌐🗺️
+
+</br>
+<p align="center">
+  <img src="https://github.com/noahgsolomon/Graphzila/assets/111200060/d72fda84-11c9-4ea7-8cb8-ab4aa5f0bfec" alt="graphzila-light" width="600">
+</p>
+</br>
+
+⭐ **Thank you for using Graphzila!** ⭐
