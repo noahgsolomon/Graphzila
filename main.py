@@ -2,10 +2,9 @@ import os
 import json
 import openai
 import logging
+from bs4 import BeautifulSoup
 import re
 from neo4j import GraphDatabase
-
-headers = {"Access-Control-Allow-Origin": "http://localhost:5173"}
 
 # Set your OpenAI API key
 openai.api_key = ""
@@ -52,7 +51,7 @@ def lambda_handler(event, context):
             functions=[
                 {
                     "name": "knowledge_graph",
-                    "description": "Generate a knowledge graph with entities and relationships. Use the colors to help "
+                    "description": "Generate a knowledge graph with entities and relationships. Make the label the relationship between the nodes like java to jre would be 'runs on', etc.. Use the colors to help "
                                    "differentiate between different node or edge types/categories to differentiate between nodes. Always provide light "
                                    "pastel colors that work well with black font. Please try to use a different color for different nodes. And if you can find a wiki for the "
                                    "concept, share the full link, empty string otherwise.",
@@ -185,4 +184,3 @@ def lambda_handler(event, context):
             "statusCode": 500,
             "body": json.dumps({"error": "Internal server error"})
         }
-
