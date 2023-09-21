@@ -55,8 +55,14 @@ export default function App() {
         ).matches
             ? DARK_THEME_KEY
             : LIGHT_THEME_KEY;
-        document.body.classList.add(userTheme || systemTheme);
-        localStorage.setItem(LOCALSTORAGE_THEME_KEY, userTheme || systemTheme);
+
+        if (!userTheme) {
+            document.body.classList.add(systemTheme);
+            localStorage.setItem(LOCALSTORAGE_THEME_KEY, systemTheme);
+            window.location.reload();
+        } else {
+            document.body.classList.add(userTheme);
+        }
     }, []);
 
     const postData = async (url: string, data: object): Promise<ResponseData> => {
@@ -72,19 +78,20 @@ export default function App() {
             throw new Error(await response.text());
         }
 
-        return await response.json();
+        const responseJson = await response.json()
+
+        return await responseJson;
     };
 
     interface ServerResponse {
         elements: {
             nodes: Array<{ data: { id: string; label: string, wiki: string, color: string } }>;
-            edges: Array<{ data: { source: string; target: string } }>;
+            edges: Array<{ data: { source: string; target: string, label: string } }>;
         };
     }
 
     // Function to parse the server response to a Cytoscape-compatible object
     const parseResponseToElements = (graphData: ServerResponse) => {
-        console.log(graphData)
         const { nodes, edges } = graphData.elements;
         const elements: ElementsDefinition = { nodes: [], edges: [] };
 
@@ -102,11 +109,13 @@ export default function App() {
 
         edges.forEach((edge) => {
             elements.edges.push({
-                data: { source: edge.data.source, target: edge.data.target }
+                data: {
+                    source: edge.data.source,
+                    target: edge.data.target,
+                    label: edge.data.label
+                }
             });
         });
-
-        console.log(elements)
 
         return elements;
     };
@@ -145,12 +154,17 @@ export default function App() {
                         'width': 1,
                         'line-color': '#ccc',
                         'target-arrow-color': '#ccc',
-                        'target-arrow-shape': 'triangle'
+                        'target-arrow-shape': 'triangle',
+                        'font-size': '8px',
+                        'font-family': 'Onest-Regular, Arial, sans-serif',
+                        'color': theme === LIGHT_THEME_KEY ? '#2D3748' : '#F9FAFB',
+                        'label': 'data(label)',
+                        'text-opacity': 0.8
                     }
                 }
             ] as Stylesheet[],
             layout: {
-                name: 'cose',
+                name: 'cose'
             }
         });
 
@@ -204,8 +218,7 @@ export default function App() {
         setIsLoading(true);
 
         try {
-            const graphData = await postData('hmmm', { user_input: userInput });
-            console.log(graphData)
+            const graphData = await postData('', { user_input: userInput });
             setIsLoading(false);
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -213,7 +226,6 @@ export default function App() {
             setTimeout(() => {
                 createGraph(cytoData);
             }, 100);
-            console.log('created graph')
             setGenerated(true);
         } catch (error) {
             setIsLoading(false);
